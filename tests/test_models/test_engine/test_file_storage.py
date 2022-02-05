@@ -113,3 +113,35 @@ class TestFileStorage(unittest.TestCase):
         with open("file.json", "r") as f:
             js = f.read()
         self.assertEqual(json.loads(string), json.loads(js))
+
+    def test_get(self):
+        """Test get method of works as expected
+
+        1. Check normal operation
+        2. Check if id is missing, TypeError is raised
+        3. Check if `cls` is not in classes list None is returned
+        4. Check if `id` is not correct None is returned
+        """
+
+        # Check No_ 1. Check normal operation
+        storage = FileStorage()
+        inst1 = BaseModel()
+
+        storage.new(inst1)
+        storage.save()
+
+        self.assertIs(
+            inst1, storage.get(BaseModel, inst1.id)
+        )
+        # Check No_ 2. If `id` is missing TypeError is raised
+        with self.assertRaises(TypeError):
+            storage.get(BaseModel)
+        # Check No_ 3. If `cls` is not in classes list None is returned
+        from typing import Dict
+        self.assertIsNone(
+            storage.get(FileStorage, inst1.id)
+        )
+        # Check No_ 4. If `id` is not correct None is returned
+        self.assertIsNone(
+            storage.get(BaseModel, 'not_an_id')
+        )

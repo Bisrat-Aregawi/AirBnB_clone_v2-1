@@ -68,3 +68,34 @@ class FileStorage:
     def close(self):
         """call reload() method for deserializing the JSON file to objects"""
         self.reload()
+
+    def get(self, cls, id):
+        """Retrieve an object based on `cls` and `id`
+
+        Args:
+            self (object): <class 'main.FileStorage'> type object
+            cls (class): refers to orm mappable classes
+            id (str): string representing primary key of table
+
+        Returns:
+            object of `cls` type with id `id`, None if not found
+        """
+        for *_, v in FileStorage.__objects.items():
+            if type(v) is cls:
+                if v.id == id:
+                    return v
+
+    def count(self, cls=None):
+        """Return number of objects of type `cls` or all objects.
+
+        Args:
+            self (object): <class 'main.DBStorage'> type object
+            cls (class, optional): refers to orm mappable classes
+
+        Returns:
+            Number of objects in of type `cls` or all types if cls == None
+        """
+        if cls:
+            return len(self.all(cls))
+        else:
+            return len(self.all())
