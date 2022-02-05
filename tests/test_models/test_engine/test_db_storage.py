@@ -3,19 +3,15 @@
 Contains the TestDBStorageDocs and TestDBStorage classes
 """
 
-from datetime import datetime
 import inspect
 import models
 from models.engine import db_storage
 from models.amenity import Amenity
-from models.base_model import BaseModel
 from models.city import City
 from models.place import Place
 from models.review import Review
 from models.state import State
 from models.user import User
-import json
-import os
 import pep8
 import unittest
 DBStorage = db_storage.DBStorage
@@ -86,3 +82,50 @@ class TestFileStorage(unittest.TestCase):
     @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
     def test_save(self):
         """Test that save properly saves objects to file.json"""
+
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
+    def test_get(self):
+        """Test that get properly returns the required object from db."""
+        from models import storage
+        from models.state import State
+
+        obj = State(name="California")
+        storage.new(obj)
+        storage.save()
+
+        dictionary = storage.all(State)
+        for key, value in dictionary.items():
+            self.assertEqual(
+                storage.get(State, key.split('.')[1]),
+                value
+            )
+            with self.assertRaises(TypeError):
+                storage.get(State)
+            self.assertIsNone(
+                storage.get(State, 'not an id')
+            )
+
+    @unittest.skipIf(models.storage_t != 'db', "not testing db storage")
+    def test_count(self):
+        """Test that count returns number of objects.
+
+        1. Check normal operation
+        2. Check if return value is of type <class 'int'>
+        """
+        from models import storage
+        from models.state import State
+
+        obj = State(name="California")
+        storage.new(obj)
+        storage.save()
+
+        # Check No_ 1. Check normal operation
+        self.assertEqual(
+            storage.count(State),
+            len(storage.all(State).values())
+        )
+        # Check No_ 2. Check if return value is an intgeger
+        self.assertIsInstance(
+            storage.count(State),
+            int
+        )
