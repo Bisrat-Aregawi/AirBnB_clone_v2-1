@@ -7,7 +7,6 @@ from models import storage
 from api.v1.views import app_views
 from os import getenv
 
-
 app = Flask(__name__)
 app.register_blueprint(app_views)
 
@@ -18,7 +17,6 @@ def page_not_found(error):
     Function that shows a 404 error
     """
     return (jsonify(error="Not found"), 404)
-
 
 @app.teardown_appcontext
 def teardown(exception=None):
