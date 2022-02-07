@@ -5,12 +5,15 @@ from api.v1.views import app_views
 from models import storage
 from flask import jsonify
 
+
 @app_views.route('/status')
 def response():
     """ get status ok
     """
     dic = {"status": "OK"}
     return dic
+
+
 @app_views.route('/stats')
 def db_stats():
     """ retrieve and show number of each objects by type
