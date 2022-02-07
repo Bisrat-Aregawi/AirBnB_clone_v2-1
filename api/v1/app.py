@@ -18,6 +18,7 @@ def page_not_found(error):
     """
     return (jsonify(error="Not found"), 404)
 
+
 @app.teardown_appcontext
 def teardown(exception=None):
     """
