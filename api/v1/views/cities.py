@@ -14,14 +14,12 @@ from flask import jsonify, abort, request
 def list_cities(state_id):
     """ list all cities from a specified state
     """
-    lista = []
-    dic = storage.all('State')
-    for key in dic:
-        if state_id == dic[key].id:
-            cities = dic[key].cities
-            for elem in cities:
-                lista.append(elem.to_dict())
-            return (jsonify(lista))
+    target_state = storage.get(State, state_id)
+    if target_state:
+        cities = [
+            ct.to_dict() for ct in target_state.cities
+        ]
+        return jsonify(cities)
     abort(404)
 
 
@@ -29,10 +27,9 @@ def list_cities(state_id):
 def city_id(city_id):
     """ return the city
     """
-    dic = storage.all('City')
-    for key in dic:
-        if city_id == dic[key].id:
-            return (jsonify(dic[key].to_dict()))
+    target_city = storage.get(City, city_id)
+    if target_city:
+        return jsonify(target_city.to_dict())
     abort(404)
 
 
@@ -40,12 +37,11 @@ def city_id(city_id):
 def city_delete(city_id):
     """ delete the delete
     """
-    dic = storage.all('City')
-    for key in dic:
-        if city_id == dic[key].id:
-            dic[key].delete()
-            storage.save()
-            return (jsonify({}))
+    target_city = storage.get(City, city_id)
+    if target_city:
+        target_city.delete()
+        storage.save()
+        return jsonify({})
     abort(404)
 
 
@@ -53,39 +49,36 @@ def city_delete(city_id):
 def add_city(state_id):
     """ create a city of a specified state
     """
-    lista = []
-    dic = storage.all('State')
-    for key in dic:
-        if state_id == dic[key].id:
-            content = request.get_json()
-            if not request.json:
-                return (jsonify("Not a JSON"), 400)
-            else:
-                if "name" not in content.keys():
-                    return (jsonify("Missing name"), 400)
-                else:
-                    content["state_id"] = state_id
-                    new_city = City(**content)
-                    new_city.save()
-                    return jsonify(new_city.to_dict()), 201
-    abort(404)
+    city_dict = request.get_json(silent=True)
+    if city_dict:
+        if city_dict.get("name"):
+            target_state = storage.get(State, state_id)
+            if not target_state:
+                abort(404)
+            new_city = City(**city_dict)
+            target_state.cities.append(new_city)
+            storage.save()
+            storage.close()
+            delattr(new_city, "state")
+            return (jsonify(new_city.to_dict()), 200)
+        return (jsonify(error="Missing name"), 400)
+    return (jsonify(error="Not a JSON"), 400)
 
 
 @app_views.route('/cities/<city_id>', methods=['PUT'])
 def update_city(city_id):
     """ update specified city
     """
-    dic = storage.all('City')
-    for key in dic:
-        if city_id == dic[key].id:
-            if not request.json:
-                return (jsonify("Not a JSON"), 400)
-            else:
-                forbidden = ["id", "update_at", "created_at", "state_id"]
-                content = request.get_json()
-                for k in content:
-                    if k not in forbidden:
-                        setattr(dic[key], k, content[k])
-                dic[key].save()
-                return jsonify(dic[key].to_dict())
+    update_me = storage.get(City, city_id)
+    if update_me:
+        city_dict = request.get_json(silent=True)
+        if city_dict:
+            forbidden = ["id", "update_at", "created_at", "state_id"]
+            for k, v in city_dict.items():
+                if k not in forbidden:
+                    setattr(update_me, k, v)
+                    storage.save()
+                    storage.close()
+                    return jsonify(update_me.to_dict())
+        return (jsonify(error="Not a JSON"), 400)
     abort(404)

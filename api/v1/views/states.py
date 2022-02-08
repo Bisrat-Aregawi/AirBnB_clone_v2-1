@@ -29,6 +29,7 @@ def state_id(state_id):
         elif request.method == "DELETE":
             state.delete()
             storage.save()
+            storage.close()
             return jsonify({})
     abort(404)
 
@@ -42,6 +43,7 @@ def add_item():
         if state_dict.get('name'):
             new_state = State(**state_dict)
             new_state.save()
+            storage.close()
             return (jsonify(new_state.to_dict()), 201)
         return (jsonify(error="Missing name"), 400)
     return (jsonify(error="Not a JSON"), 400)
@@ -60,6 +62,7 @@ def update_item(state_id):
                 if k not in forbidden:
                     setattr(update_me, k, v)
                     storage.save()
+                    storage.close()
                     return jsonify(update_me.to_dict())
         return (jsonify(error="Not a JSON"), 400)
     abort(404)
