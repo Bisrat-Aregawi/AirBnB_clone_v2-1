@@ -114,34 +114,58 @@ class TestFileStorage(unittest.TestCase):
             js = f.read()
         self.assertEqual(json.loads(string), json.loads(js))
 
-    def test_get(self):
-        """Test get method of works as expected
-
-        1. Check normal operation
-        2. Check if id is missing, TypeError is raised
-        3. Check if `cls` is not in classes list None is returned
-        4. Check if `id` is not correct None is returned
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_get_no_class(self):
+        """ test get with a non existing class
         """
-
-        # Check No_ 1. Check normal operation
         storage = FileStorage()
-        inst1 = BaseModel()
+        one = storage.get("NO", "09231280jdodasd")
+        self.assertEqual(one, None)
 
-        storage.new(inst1)
-        storage.save()
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_get_class_no_id(self):
+        """ test get if a class id doesn´t exist
+        """
+        storage = FileStorage()
+        one = storage.get("State", "09231280jdodasd")
+        self.assertEqual(one, None)
 
-        self.assertIs(
-            inst1, storage.get(BaseModel, inst1.id)
-        )
-        # Check No_ 2. If `id` is missing TypeError is raised
-        with self.assertRaises(TypeError):
-            storage.get(BaseModel)
-        # Check No_ 3. If `cls` is not in classes list None is returned
-        from typing import Dict
-        self.assertIsNone(
-            storage.get(FileStorage, inst1.id)
-        )
-        # Check No_ 4. If `id` is not correct None is returned
-        self.assertIsNone(
-            storage.get(BaseModel, 'not_an_id')
-        )
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_get(self):
+        """ test get return
+        """
+        storage = FileStorage()
+        first_elem = list(storage.all("State").values())[0]
+        first_state_id = first_elem.id
+        one = storage.get("State", first_state_id)
+        self.assertEqual(one, first_elem)
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count_no_class(self):
+        """ test count is no class
+        """
+        storage = FileStorage()
+        counter = 0
+        dic = storage.all()
+        for elem in dic:
+            counter = counter + 1
+        self.assertEqual(counter, storage.count())
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count_fail(self):
+        """ test count if no valid class
+        """
+        storage = FileStorage()
+        counter = 0
+        self.assertEqual(counter, storage.count("NO_CLASS"))
+
+    @unittest.skipIf(models.storage_t == 'db', "not testing file storage")
+    def test_count(self):
+        """ test count with class user
+        """
+        storage = FileStorage()
+        counter = 0
+        dic = storage.all("User")
+        for elem in dic:
+            counter = counter + 1
+        self.assertEqual(counter, storage.count("User"))
