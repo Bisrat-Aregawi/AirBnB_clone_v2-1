@@ -1,76 +1,96 @@
 #!/usr/bin/python3
-""" User APIRest
+""" Place APIRest
 """
 
 from models import storage
+from models.place import Place
+from models.city import City
 from models.user import User
 from api.v1.views import app_views
 from flask import jsonify, abort, request
 
 
-@app_views.route('/users', methods=['GET'])
-def user_list():
+@app_views.route('/cities/<city_id>/places', methods=['GET'])
+def places_list(city_id):
     """ list of an objetc in a dict form
     """
     lista = []
-    dic = storage.all('User')
+    dic = storage.all('City')
     for elem in dic:
-        lista.append(dic[elem].to_dict())
-    return (jsonify(lista))
-
-
-@app_views.route('/users/<user_id>', methods=['GET', 'DELETE'])
-def user_id(user_id):
-    """ realize the specific action depending on method
-    """
-    lista = []
-    dic = storage.all('User')
-    for elem in dic:
-        var = dic[elem].to_dict()
-        if var["id"] == user_id:
-            if request.method == 'GET':
-                return (jsonify(var))
-            elif request.method == 'DELETE':
-                aux = {}
-                dic[elem].delete()
-                storage.save()
-                return (jsonify(aux))
+        if dic[elem].id == city_id:
+            var = dic[elem].places
+            for i in var:
+                lista.append(i.to_dict())
+            return (jsonify(lista))
     abort(404)
 
 
-@app_views.route('/users', methods=['POST'])
-def user_item():
-    """ add a new item
+@app_views.route('/places/<place_id>', methods=['GET'])
+def place(place_id):
+    """ list of objetc in dict form
     """
-    if not request.json:
-        return jsonify("Not a JSON"), 400
-    else:
-        content = request.get_json()
-        if "email" not in content.keys():
-            return jsonify("Missing email"), 400
-        if "password" not in content.keys():
-            return jsonify("Missing password"), 400
-        else:
-            new_user = User(**content)
-            new_user.save()
-            return (jsonify(new_user.to_dict()), 201)
+    dic = storage.all('Place')
+    for elem in dic:
+        if dic[elem].id == place_id:
+            return (jsonify(dic[elem].to_dict()))
+    abort(404)
 
 
-@app_views.route('/users/<user_id>', methods=['PUT'])
-def update_user(user_id):
-    """ update an item
+@app_views.route('/places/<place_id>', methods=['DELETE'])
+def place_delete(place_id):
+    """ delete the delete
     """
-    dic = storage.all("User")
+    dic = storage.all('Place')
     for key in dic:
-        if dic[key].id == user_id:
+        if place_id == dic[key].id:
+            dic[key].delete()
+            storage.save()
+            return (jsonify({}))
+    abort(404)
+
+
+@app_views.route('/cities/<city_id>/places', methods=['POST'])
+def add_place(city_id):
+    """ create a place of a specified city
+    """
+    lista = []
+    obj = storage.get("City", city_id)
+    content = request.get_json()
+    if not obj:
+        abort(404)
+    if not request.json:
+        return (jsonify("Not a JSON"), 400)
+    else:
+        if "user_id" not in content.keys():
+            return (jsonify("Missing user_id"), 400)
+        obj2 = storage.get("User", content["user_id"])
+        if not obj2:
+            abort(404)
+        if "name" not in content.keys():
+            return (jsonify("Missing name"), 400)
+
+        content["city_id"] = city_id
+        new_place = Place(**content)
+        new_place.save()
+        return jsonify(new_place.to_dict()), 201
+
+
+@app_views.route('/places/<place_id>', methods=['PUT'])
+def update_place(place_id):
+    """ update specified place
+    """
+    dic = storage.all('Place')
+    for key in dic:
+        if place_id == dic[key].id:
             if not request.json:
-                return jsonify("Not a JSON"), 400
+                return (jsonify("Not a JSON"), 400)
             else:
-                forbidden = ["id", "email", "update_at", "created_at"]
+                forbidden = ["id", "update_at", "created_at",
+                             "city_id", "user_id"]
                 content = request.get_json()
                 for k in content:
                     if k not in forbidden:
                         setattr(dic[key], k, content[k])
                 dic[key].save()
-                return(jsonify(dic[key].to_dict()))
+                return jsonify(dic[key].to_dict())
     abort(404)
