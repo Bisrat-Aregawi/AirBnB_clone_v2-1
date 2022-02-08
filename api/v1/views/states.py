@@ -12,29 +12,24 @@ from flask import jsonify, abort, request
 def list_dict():
     """ list of an objetc in a dict form
     """
-    lista = []
-    dic = storage.all('State')
-    for elem in dic:
-        lista.append(dic[elem].to_dict())
-    return (jsonify(lista))
+    states_list = [
+        st.to_dict() for st in storage.all('State').values()
+    ]
+    return (jsonify(states_list))
 
 
 @app_views.route('/states/<state_id>', methods=['GET', 'DELETE'])
 def state_id(state_id):
     """ realize the specific action depending on method
     """
-    lista = []
-    dic = storage.all('State')
-    for elem in dic:
-        var = dic[elem].to_dict()
-        if var["id"] == state_id:
-            if request.method == 'GET':
-                return (jsonify(var))
-            elif request.method == 'DELETE':
-                aux = {}
-                dic[elem].delete()
-                storage.save()
-                return (jsonify(aux))
+    state = storage.get(State, state_id)
+    if state:
+        if request.method == "GET":
+            return jsonify(state.to_dict())
+        elif request.method == "DELETE":
+            state.delete()
+            storage.save()
+            return jsonify({})
     abort(404)
 
 
@@ -42,33 +37,29 @@ def state_id(state_id):
 def add_item():
     """ add a new item
     """
-    if not request.json:
-        return jsonify("Not a JSON"), 400
-    else:
-        content = request.get_json()
-        if "name" not in content.keys():
-            return jsonify("Missing name"), 400
-        else:
-            new_state = State(**content)
+    state_dict = request.get_json(silent=True)
+    if state_dict:
+        if state_dict.get('name'):
+            new_state = State(**state_dict)
             new_state.save()
             return (jsonify(new_state.to_dict()), 201)
+        return (jsonify(error="Missing name"), 400)
+    return (jsonify(error="Not a JSON"), 400)
 
 
 @app_views.route('/states/<state_id>', methods=['PUT'])
 def update_item(state_id):
     """ update item
     """
-    dic = storage.all("State")
-    for key in dic:
-        if dic[key].id == state_id:
-            if not request.json:
-                return jsonify("Not a JSON"), 400
-            else:
-                forbidden = ["id", "update_at", "created_at"]
-                content = request.get_json()
-                for k in content:
-                    if k not in forbidden:
-                        setattr(dic[key], k, content[k])
-                dic[key].save()
-                return(jsonify(dic[key].to_dict()))
+    update_me = storage.get(State, state_id)
+    if update_me:
+        state_dict = request.get_json(silent=True)
+        if state_dict:
+            forbidden = ["id", "update_at", "created_at"]
+            for k, v in state_dict.items():
+                if k not in forbidden:
+                    setattr(update_me, k, v)
+                    storage.save()
+                    return jsonify(update_me.to_dict())
+        return (jsonify(error="Not a JSON"), 400)
     abort(404)
