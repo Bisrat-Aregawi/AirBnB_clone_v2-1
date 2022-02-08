@@ -60,7 +60,7 @@ def add_city(state_id):
             storage.save()
             storage.close()
             delattr(new_city, "state")
-            return (jsonify(new_city.to_dict()), 200)
+            return (jsonify(new_city.to_dict()), 201)
         return (jsonify(error="Missing name"), 400)
     return (jsonify(error="Not a JSON"), 400)
 
