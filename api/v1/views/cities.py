@@ -60,7 +60,7 @@ def add_city(state_id):
             storage.save()
             storage.close()
             delattr(new_city, "state")
-            return (jsonify(new_city.to_dict()), 200)
+            return (jsonify(new_city.to_dict()), 201)
         return (jsonify(error="Missing name"), 400)
     return (jsonify(error="Not a JSON"), 400)
 
@@ -69,16 +69,16 @@ def add_city(state_id):
 def update_city(city_id):
     """ update specified city
     """
-    update_me = storage.get(City, city_id)
-    if update_me:
-        city_dict = request.get_json(silent=True)
-        if city_dict:
+    city_dict = request.get_json(silent=True)
+    if city_dict:
+        update_me = storage.get(City, city_id)
+        if update_me:
             forbidden = ["id", "update_at", "created_at", "state_id"]
             for k, v in city_dict.items():
                 if k not in forbidden:
                     setattr(update_me, k, v)
-                    storage.save()
-                    storage.close()
-                    return jsonify(update_me.to_dict())
-        return (jsonify(error="Not a JSON"), 400)
-    abort(404)
+            storage.save()
+            storage.close()
+            return jsonify(update_me.to_dict())
+        abort(404)
+    return (jsonify(error="Not a JSON"), 400)

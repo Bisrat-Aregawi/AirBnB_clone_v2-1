@@ -12,29 +12,25 @@ from flask import jsonify, abort, request
 def amenity_list():
     """ list of objetc in dict form
     """
-    lista = []
-    dic = storage.all('Amenity')
-    for elem in dic:
-        lista.append(dic[elem].to_dict())
-    return (jsonify(lista))
+    amenities_list = [
+        am.to_dict() for am in storage.all(Amenity)
+    ]
+    return jsonify(amenities_list)
 
 
 @app_views.route('/amenities/<amenity_id>', methods=['GET', 'DELETE'])
 def amenity_id(amenity_id):
     """ realize the specific action depending on a method
     """
-    lista = []
-    dic = storage.all('Amenity')
-    for elem in dic:
-        var = dic[elem].to_dict()
-        if var["id"] == amenity_id:
-            if request.method == 'GET':
-                return (jsonify(var))
-            elif request.method == 'DELETE':
-                aux = {}
-                dic[elem].delete()
-                storage.save()
-                return (jsonify(aux))
+    amenity = storage.get(Amenity, amenity_id)
+    if amenity:
+        if request.method == "GET":
+            return jsonify(amenity.to_dict())
+        elif request.method == "DELETE":
+            amenity.delete()
+            storage.save()
+            storage.close()
+            return jsonify({})
     abort(404)
 
 
@@ -42,33 +38,31 @@ def amenity_id(amenity_id):
 def amenity_item():
     """ add a new item
     """
-    if not request.json:
-        return jsonify("Not a JSON"), 400
-    else:
-        content = request.get_json()
-        if "name" not in content.keys():
-            return jsonify("Missing name"), 400
-        else:
-            new_amenity = Amenity(**content)
+    amenity_dict = request.get_json(silent=True)
+    if amenity_dict:
+        if amenity_dict.get("name"):
+            new_amenity = Amenity(**amenity_dict)
             new_amenity.save()
+            storage.close()
             return (jsonify(new_amenity.to_dict()), 201)
+        return (jsonify(error="Missing name"), 400)
+    return (jsonify(error="Not a JSON"), 400)
 
 
 @app_views.route('/amenities/<amenity_id>', methods=['PUT'])
 def update_amenity(amenity_id):
     """ update item
     """
-    dic = storage.all("Amenity")
-    for key in dic:
-        if dic[key].id == amenity_id:
-            if not request.json:
-                return jsonify("Not a JSON"), 400
-            else:
-                forbidden = ["id", "update_at", "created_at"]
-                content = request.get_json()
-                for k in content:
-                    if k not in forbidden:
-                        setattr(dic[key], k, content[k])
-                dic[key].save()
-                return(jsonify(dic[key].to_dict()))
-    abort(404)
+    amenity_dict = request.get_json(silent=True)
+    if amenity_dict:
+        update_me = storage.get(Amenity, amenity_id)
+        if update_me:
+            forbidden = ["id", "update_at", "created_at"]
+            for k, v in amenity_dict.items():
+                if k not in forbidden:
+                    setattr(update_me, k, v)
+                    storage.save()
+                    storage.close()
+                    return jsonify(update_me.to_dict())
+        abort(404)
+    return (jsonify(error="Not a JSON"), 400)

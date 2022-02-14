@@ -53,16 +53,16 @@ def add_item():
 def update_item(state_id):
     """ update item
     """
-    update_me = storage.get(State, state_id)
-    if update_me:
-        state_dict = request.get_json(silent=True)
-        if state_dict:
+    state_dict = request.get_json(silent=True)
+    if state_dict:
+        update_me = storage.get(State, state_id)
+        if update_me:
             forbidden = ["id", "update_at", "created_at"]
             for k, v in state_dict.items():
                 if k not in forbidden:
                     setattr(update_me, k, v)
-                    storage.save()
-                    storage.close()
-                    return jsonify(update_me.to_dict())
-        return (jsonify(error="Not a JSON"), 400)
-    abort(404)
+            storage.save()
+            storage.close()
+            return jsonify(update_me.to_dict())
+        abort(404)
+    return (jsonify(error="Not a JSON"), 400)
