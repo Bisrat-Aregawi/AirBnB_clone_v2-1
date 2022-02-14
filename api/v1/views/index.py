@@ -18,11 +18,14 @@ def response():
 def class_counter():
     """ get a dictionary from count method
     """
-    dic = {}
-    dic["amenities"] = storage.count("Amenity")
-    dic["cities"] = storage.count("City")
-    dic["places"] = storage.count("Place")
-    dic["reviews"] = storage.count("Review")
-    dic["states"] = storage.count("State")
-    dic["users"] = storage.count("User")
-    return jsonify(dic)
+    dictionary = {
+        "amenities": 0,
+        "cities": 0,
+        "places": 0,
+        "reviews": 0,
+        "states": 0,
+        "users": 0,
+    }
+    for v in storage.all().values():
+        dictionary[v.__tablename__] = storage.count(v.__class)
+    return jsonify(dictionary)

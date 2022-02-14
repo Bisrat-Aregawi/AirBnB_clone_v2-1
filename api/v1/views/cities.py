@@ -77,8 +77,8 @@ def update_city(city_id):
             for k, v in city_dict.items():
                 if k not in forbidden:
                     setattr(update_me, k, v)
-                    storage.save()
-                    storage.close()
-                    return jsonify(update_me.to_dict())
+            storage.save()
+            storage.close()
+            return jsonify(update_me.to_dict())
         abort(404)
     return (jsonify(error="Not a JSON"), 400)
