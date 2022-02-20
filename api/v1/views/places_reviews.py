@@ -64,7 +64,7 @@ def add_rev(place_id):
                 target_place.reviews.append(new_review)
                 storage.save()
                 storage.close()
-                print(new_review)
+                delattr(new_review, "place")
                 return (jsonify(new_review.to_dict()), 201)
             return (jsonify(error="Missing user_id"), 400)
         return (jsonify(error="Missing text"), 400)
