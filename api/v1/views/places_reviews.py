@@ -14,14 +14,12 @@ from flask import jsonify, abort, request
 def rev_list(place_id):
     """ list of objetc in dict form
     """
-    lista = []
-    dic = storage.all('Place')
-    for elem in dic:
-        if dic[elem].id == place_id:
-            var = dic[elem].reviews
-            for i in var:
-                lista.append(i.to_dict())
-            return (jsonify(lista))
+    target_place = storage.get(Place, place_id)
+    if target_place:
+        reviews = [
+            rev.to_dict() for rev in target_place.reviews
+        ]
+        return jsonify(reviews)
     abort(404)
 
 
@@ -29,10 +27,9 @@ def rev_list(place_id):
 def review(review_id):
     """ list of objetc in dict form
     """
-    dic = storage.all('Review')
-    for elem in dic:
-        if dic[elem].id == review_id:
-            return (jsonify(dic[elem].to_dict()))
+    target_review = storage.get(Review, review_id)
+    if target_review:
+        return jsonify(target_review.to_dict())
     abort(404)
 
 
@@ -40,12 +37,12 @@ def review(review_id):
 def rev_delete(review_id):
     """ delete the delete
     """
-    dic = storage.all('Review')
-    for key in dic:
-        if review_id == dic[key].id:
-            dic[key].delete()
-            storage.save()
-            return (jsonify({}))
+    target_review = storage.get(Review, review_id)
+    if target_review:
+        target_review.delete()
+        storage.save()
+        storage.close()
+        return jsonify({})
     abort(404)
 
 
@@ -53,26 +50,25 @@ def rev_delete(review_id):
 def add_rev(place_id):
     """ create a review of a specified city
     """
-    lista = []
-    obj = storage.get("Place", place_id)
-    content = request.get_json()
-    if not obj:
-        abort(404)
-    if not request.json:
-        return (jsonify("Not a JSON"), 400)
-    else:
-        if "user_id" not in content.keys():
-            return (jsonify("Missing user_id"), 400)
-        obj2 = storage.get("User", content["user_id"])
-        if not obj2:
-            abort(404)
-        if "text" not in content.keys():
-            return (jsonify("Missing text"), 400)
-
-        content["place_id"] = place_id
-        new_place = Review(**content)
-        new_place.save()
-        return jsonify(new_place.to_dict()), 201
+    review_dict = request.get_json(silent=True)
+    if review_dict:
+        if review_dict.get("text"):
+            if review_dict.get("user_id"):
+                target_user = storage.get(User, review_dict.get("user_id"))
+                if not target_user:
+                    abort(404)
+                target_place = storage.get(Place, place_id)
+                if not target_place:
+                    abort(404)
+                new_review = Review(**review_dict)
+                target_place.reviews.append(new_review)
+                storage.save()
+                storage.close()
+                print(new_review)
+                return (jsonify(new_review.to_dict()), 201)
+            return (jsonify(error="Missing user_id"), 400)
+        return (jsonify(error="Missing text"), 400)
+    return (jsonify(error="Not a JSON"), 400)
 
 
 @app_views.route('/reviews/<review_id>', methods=['PUT'])
