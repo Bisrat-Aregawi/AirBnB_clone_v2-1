@@ -68,7 +68,7 @@ def add_place(city_id):
                 return (jsonify(new_place.to_dict()), 201)
             return (jsonify(error="Missing user_id"), 400)
         return (jsonify(error="Missing name"), 400)
-    abort(404)
+    return (jsonify(error="Not a JSON"), 400)
 
 
 @app_views.route('/places/<place_id>', methods=['PUT'])
