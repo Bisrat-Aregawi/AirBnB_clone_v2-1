@@ -75,18 +75,16 @@ def add_rev(place_id):
 def update_rev(review_id):
     """ update a specified place
     """
-    dic = storage.all('Review')
-    for key in dic:
-        if review_id == dic[key].id:
-            if not request.json:
-                return (jsonify("Not a JSON"), 400)
-            else:
-                forbidden = ["id", "update_at", "created_at",
-                             "place_id", "user_id"]
-                content = request.get_json()
-                for k in content:
-                    if k not in forbidden:
-                        setattr(dic[key], k, content[k])
-                dic[key].save()
-                return jsonify(dic[key].to_dict())
-    abort(404)
+    review_dict = request.get_json(silent=True)
+    if review_dict:
+        update_me = storage.get(Review, review_id)
+        if update_me:
+            forbidden = ["id", "update_at", "created_at", "place_id", "user_id"]
+            for k, v in review_dict.items():
+                if k not in forbidden:
+                    setattr(update_me, k, v)
+            storage.save()
+            storage.close()
+            return jsonify(update_me.to_dict())
+        abort(404)
+    return (jsonify(error="Not a JSON"), 400)
