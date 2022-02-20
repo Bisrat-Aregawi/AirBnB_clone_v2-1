@@ -13,7 +13,7 @@ def amenity_list():
     """ list of objetc in dict form
     """
     amenities_list = [
-        am.to_dict() for am in storage.all(Amenity)
+        am.to_dict() for am in storage.all(Amenity).values()
     ]
     return jsonify(amenities_list)
 
