@@ -79,7 +79,13 @@ def update_rev(review_id):
     if review_dict:
         update_me = storage.get(Review, review_id)
         if update_me:
-            forbidden = ["id", "update_at", "created_at", "place_id", "user_id"]
+            forbidden = [
+                "id",
+                "update_at",
+                "created_at",
+                "place_id",
+                "user_id"
+            ]
             for k, v in review_dict.items():
                 if k not in forbidden:
                     setattr(update_me, k, v)
