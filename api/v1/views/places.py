@@ -2,11 +2,14 @@
 """ Place APIRest
 """
 
+from copy import copy
 from models import storage
 from models.place import Place
 from models.city import City
 from models.user import User
 from api.v1.views import app_views
+from models.state import State
+from models.amenity import Amenity
 from flask import jsonify, abort, request
 
 
@@ -90,3 +93,53 @@ def update_place(place_id):
             return jsonify(update_me.to_dict())
         abort(404)
     return (jsonify(error="Not a JSON"), 400)
+
+
+@app_views.route('/places_search', methods=['POST'])
+def get_places():
+    """Retrieve all Place objects depending on JSON in the body of request
+    """
+    places = []
+    srchs_dct = request.get_json(silent=True)
+    if srchs_dct == {}:
+        for plc in list(storage.all(Place).values()):
+            places.append(plc.to_dict())
+        return jsonify(places)
+    elif srchs_dct is not None:
+        if srchs_dct.get("states"):
+            for st_id in srchs_dct.get("states"):
+                st = storage.get(State, st_id)
+                if not st:
+                    abort(404)
+                for cty in st.cities:
+                    places.extend(cty.places)
+        if srchs_dct.get("cities"):
+            for cty_id in srchs_dct.get("cities"):
+                cty = storage.get(City, cty_id)
+                if not cty:
+                    abort(404)
+                cty_plcs = cty.places
+                for plc in cty_plcs:
+                    if plc not in places:
+                        places.append(plc)
+        if srchs_dct.get("amenities"):
+            if srchs_dct.get("states") is None:
+                if srchs_dct.get("cities") is None:
+                    places = list(storage.all(Place).values())
+            plc_cpy = copy(places)
+            for plc in plc_cpy:
+                for am_id in srchs_dct.get("amenities"):
+                    req_amen = storage.get(Amenity, am_id)
+                    if not req_amen:
+                        abort(404)
+                    if req_amen not in plc.amenities:
+                        places.remove(plc)
+                        break
+        storage.close()
+        for plc in places:
+            delattr(plc, "amenities")
+        return jsonify(
+            [plc.to_dict() for plc in places]
+        )
+    else:
+        return (jsonify(error="Not a JSON"), 400)
